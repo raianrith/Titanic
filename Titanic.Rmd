@@ -5,26 +5,68 @@ date: "2/20/2022"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+First, we read in the files and use stringsAsFactors = FALSE since we do not want to convert strings to factors for further data cleaning. We then combine both the files so that we can clean them together. 
+
+```{r}
+titanic.train <- read.csv("train.csv", stringsAsFactors = FALSE)
+titanic.test <- read.csv("test.csv", stringsAsFactors = FALSE)
 ```
 
-## R Markdown
+Add a column to the train set to identify that it is from training data set. This will help when we join the two datasets. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+titanic.train$IsTrainSet <- TRUE
+titanic.test$IsTrainSet <- FALSE
 ```
 
-## Including Plots
+To combine we need to make sure all headers are same and that number of columns of train set = number of columns of test set. Headers need to be spelled exactly the same. 
 
-You can also embed plots, for example:
+There is no column called Survived in the test set since that is what we have to find. So we create it. 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+titanic.test$Survived <- NA
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Now, we join with rbind
+
+```{r}
+titanic.full <- rbind(titanic.train, titanic.test)
+```
+
+Next, we clean the data in a way so that we can build a model. We deal with the NA's on a column to column basis. 
+
+```{r}
+summary(titanic.full)
+```
+
+
+For Embarked, there are 2 missing values. We replace them with the mode of Embarked which is S. 
+
+```{r}
+table(titanic.full$Embarked)
+
+titanic.full[titanic.full$Embarked=='', "Embarked"] #Returns the 2 Null values
+titanic.full[titanic.full$Embarked=='', "Embarked"] <- 'S' #Replaces the null values with the mode of Embarked (S)
+
+table(titanic.full$Embarked)
+```
+
+For Age, there is a lot of missing values. What is the best way of cleaning it ? For now, we replace it with the median. 
+
+```{r}
+table(is.na(titanic.full$Age))
+
+age.median <- median(titanic.full$Age, na.rm = TRUE)
+
+titanic.full[is.na(titanic.full$Age), "Age"] <- age.median #replace null with median
+
+table(is.na(titanic.full$Age))
+```
+
+For Fare, we have 1 missing value. 
+
+```{r}
+table(is.na(titanic.full$Fare))
+```
+
+
