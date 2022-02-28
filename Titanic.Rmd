@@ -63,10 +63,80 @@ titanic.full[is.na(titanic.full$Age), "Age"] <- age.median #replace null with me
 table(is.na(titanic.full$Age))
 ```
 
-For Fare, we have 1 missing value. 
+For Fare, we have 1 missing value. We will later use regression to find missing fare  but for now we will use the median. 
 
 ```{r}
-table(is.na(titanic.full$Fare))
+fare.median <- median(titanic.full$Fare, na.rm = TRUE)
+
+titanic.full[is.na(titanic.full$Fare), "Fare"] <- fare.median #replace null with median
+
 ```
 
+
+Next, we need to do some categorical casting. We need to factor Pclass, Sex, and Embarked. Do we factor SibSp (sibling spouse) and Parch (Parent Child)?
+
+```{r}
+# str(titanic.full)
+
+titanic.full$Pclass <- as.factor(titanic.full$Pclass)
+titanic.full$Sex <- as.factor(titanic.full$Sex)
+titanic.full$Embarked<- stas.factor(titanic.full$Embarked)
+```
+
+
+
+Now that the date has been cleaned, we need to split it back to training and test data sets.
+
+```{r}
+titanic.train <- titanic.full[titanic.full$IsTrainSet == TRUE,]
+titanic.test <- titanic.full[titanic.full$IsTrainSet == FALSE,]
+```
+
+Now we need to do categorical casting on Survived. We could not do that before the split because then we would have 3 factors (including the ones for the test set which we set as NA)
+
+```{r}
+titanic.train$Survived<- as.factor(titanic.train$Survived)
+
+```
+
+
+
+WE NEED TO DO PARAMETER TUNING, CROSS VALIDATION, 70/30 SPLIT
+
+
+Now, we need to choose which variables we use as predictors for predicting the binary classification model. 
+
+How to define on R, what to use.  We make a formula in r with the equation we want to use to predict.
+
+```{r}
+survived.equation <- "Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked"
+survived.formula <- as.formula(survived.equation)
+```
+
+We use random forest algorithm for prediction. 
+
+```{r}
+#install.packages("randomForest")
+
+library(randomForest)
+
+titanic.model <- randomForest(formula = survived.formula, data = titanic.train, ntree = 500, mtry = 3, nodesize = 0.1 * nrow(titanic.test))
+```
+
+Next we specify features. We need to do this bc we want to use passenger id. 
+
+```{r}
+features.equation <- "Pclass + Sex + Age + SibSp + Parch + Fare + Embarked"
+Survived <- predict(titanic.model, newdata = titanic.test)
+```
+
+To submit, we need passengerId and survived. 
+
+```{r}
+PassengerId <- titanic.test$PassengerId
+output.df <- as.data.frame(PassengerId)
+output.df$Survived <- Survived
+
+write.csv(output.df, file = "kaggle_submission.csv", row.names = FALSE)
+```
 
